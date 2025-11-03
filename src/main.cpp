@@ -16,7 +16,7 @@
 #include "sensesp/system/lambda_consumer.h"
 #include "sensesp/signalk/signalk_value_listener.h"
 #include "sensesp_app_builder.h"
-#include "driver/ledc.h"
+#include <Arduino.h>
 
 using namespace sensesp;
 
@@ -37,23 +37,37 @@ void setup() {
                     ->enable_ota("ThisIsMyOTAPassword")
                     ->get_app();
 
+  
+
+  // Level Channel 0
+  ledcSetup(0, 8000, 8);
+  ledcAttachPin(D0, 0);
+  auto Lc1 = new SKValueListener<float>("electrical.outside.mast.channel.1.value", CHANGE, "Channel 1");
+  auto* Lc1_Consumer = new LambdaConsumer<float>([](float value) {
+    ledcWrite(0, value);
+    debugI("Channel 1: %f", value);
+  });
+  Lc1->connect_to(Lc1_Consumer);
+
   // Level Channel 1
-  auto Lc1 = new SKValueListener<float>("environment.outside.mast.level_channel_1");
-  Lc1->connect_to(new LambdaConsumer<float>([](float value) {
-    ledcWrite(1, static_cast<uint8_t>(value * 255)); // Write value (0-1 scaled to 0-255)
-  }));
+  ledcSetup(1, 8000, 8);
+  ledcAttachPin(D1, 1);
+  auto Lc2 = new SKValueListener<float>("electrical.outside.mast.channel.2.value", CHANGE, "Channel 2");
+  auto* Lc2_Consumer = new LambdaConsumer<float>([](float value) {
+    ledcWrite(1, value);
+    debugI("Channel 2: %f", value);
+  });
+  Lc2->connect_to(Lc2_Consumer);
 
   // Level Channel 2
-  auto Lc2 = new SKValueListener<float>("environment.outside.mast.level_channel_2");
-  Lc2->connect_to(new LambdaConsumer<float>([](float value) {
-    ledcWrite(2, static_cast<uint8_t>(value * 255)); // Write value (0-1 scaled to 0-255)
-  }));
-
-  // Level Channel 3
-  auto Lc3 = new SKValueListener<float>("environment.outside.mast.level_channel_3");
-  Lc3->connect_to(new LambdaConsumer<float>([](float value) {
-    ledcWrite(3, static_cast<uint8_t>(value * 255)); // Write value (0-1 scaled to 0-255)
-  }));
+  ledcSetup(2, 8000, 8);
+  ledcAttachPin(D2, 2);
+  auto Lc3 = new SKValueListener<float>("electrical.outside.mast.channel.3.value", CHANGE, "Channel 3");
+  auto* Lc3_Consumer = new LambdaConsumer<float>([](float value) {
+    ledcWrite(2, value);
+    debugI("Channel 3: %f", value);
+  });
+  Lc3->connect_to(Lc3_Consumer);
 
 
 
