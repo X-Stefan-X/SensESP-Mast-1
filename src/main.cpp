@@ -15,7 +15,9 @@
 #include "sensesp/signalk/signalk_output.h"
 #include "sensesp/system/lambda_consumer.h"
 #include "sensesp/signalk/signalk_value_listener.h"
+#include "sensesp/transforms/linear.h"
 #include "sensesp_app_builder.h"
+#include "CalypsoNimBLE.h"
 
 
 #include <Arduino.h>
@@ -85,8 +87,14 @@ void setup() {
   });
   Lc4->connect_to(Lc4_Consumer);
 
-  
+  //Calypso BLE
+  auto* calypso_sensor = new CalypsoWindSensor(500);
+  calypso_sensor->start(); 
 
+  calypso_sensor->speed_ms.connect_to(new SKOutputFloat("environment.wind.speedApparent", "/Calypso/AWS")); 
+  calypso_sensor->angle_rad.connect_to(new SKOutputFloat("environment.wind.angleApparent", "/Calypso Wind/angle"));
+  calypso_sensor->temp_C.connect_to(new SKOutputFloat("environment.outside.temperature", "/Calypso Wind/temperature"));
+  calypso_sensor->soc.connect_to(new Linear(0.01, 0.0))->connect_to(new SKOutputFloat("electrical.batteries.99.capacity.stateOfCharge", "/Calypso Wind/battery SOC"));
 
   // To avoid garbage collecting all shared pointers created in setup(),
   // loop from here.
