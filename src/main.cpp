@@ -18,13 +18,31 @@
 #include "sensesp/transforms/linear.h"
 #include "sensesp_app_builder.h"
 #include "CalypsoNimBLE.h"
+#include "SHT85.h"
 
 
 #include <Arduino.h>
 
 using namespace sensesp;
 
+#define SHT85_ADDRESS       0x44
+SHT85 sht(SHT85_ADDRESS);
 
+SKOutput<float>* sk_temp;
+SKOutput<float>* sk_hum;
+
+void read_sht85() {
+  sht.read();
+
+  float t_C = sht.getTemperature();
+  float h_percent = sht.getHumidity();
+
+  float t_K = t_C + 273.15F;
+  float h_ratio = h_percent / 100.0F;
+
+  sk_temp->set_input(t_K);
+  sk_hum->set_input(h_ratio); 
+}
 
 
 // The setup function performs one-time application initialization.
@@ -95,6 +113,26 @@ void setup() {
   calypso_sensor->angle_rad.connect_to(new SKOutputFloat("environment.wind.angleApparent", "/Calypso Wind/angle"));
   calypso_sensor->temp_C.connect_to(new SKOutputFloat("environment.outside.temperature", "/Calypso Wind/temperature"));
   calypso_sensor->soc.connect_to(new Linear(0.01, 0.0))->connect_to(new SKOutputFloat("electrical.batteries.99.capacity.stateOfCharge", "/Calypso Wind/battery SOC"));
+
+
+  //SHT85
+
+  sht.begin();
+  sht.setTemperatureOffset((random(100) - 50) * 0.01);
+  sht.setHumidityOffset((random(100) - 50) * 0.01);
+
+  sk_temp = new SKOutput<float>(
+      "environment.outside.temperature",
+      "/sensors/sht85/temperature",
+      new SKMetadata("K", "Inside temperature")
+  );
+
+  sk_hum = new SKOutput<float>(
+      "environment.outside.humidity",
+      "/sensors/sht85/humidity",
+      new SKMetadata("ratio", "Inside relative humidity")
+  );
+
 
   // To avoid garbage collecting all shared pointers created in setup(),
   // loop from here.
