@@ -1,10 +1,9 @@
-# SensESP Project Template
+# SensESP Mast 1
 
-This repository provides a template for [SensESP](https://github.com/SignalK/SensESP/) projects.
-Fork, clone or download the repository and try building and uploading the project to an ESP32 device.
-You should immediately see output on the serial monitor! Similarly, you should be able to connect to
-the WiFi access point with the same name as the device. The password is `thisisfine`.
+Empfängt die Winddaten von Calypso Hypersonic Anemometer BLE und überträgt diese per WLAN an SignalK.
 
-To customize the template for your own purposes, edit the `src/main.cpp` and `platformio.ini` files.
+Kann 4 Ausgänge 24V Steuern für Navigationsbeleuchtung.
 
-Comprehensive documentation for SensESP, including how to get started with your own project, is available at the [SensESP documentation site](https://signalk.org/SensESP/).
+Hat einen I2C Bus Stecker für Erweiterungen.
+
+ToDo: Anbindung Temperatur und Luftfeuchtigkeits Sensor per I2C.
