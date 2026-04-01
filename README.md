@@ -20,7 +20,7 @@ Verbindet sich automatisch per BLE mit dem Calypso Ultrasonic Anemometer und lie
 Der SHT85 misst alle 30 Sekunden Temperatur und relative Luftfeuchtigkeit am Mast.
 
 **Mastbeleuchtung**
-Vier PWM-Kanäle (8-Bit, 8 kHz) empfangen Steuerwerte vom Signal K Server und steuern damit die Helligkeit der Navigationsleuchten.
+Vier PWM-Ausgänge (8-Bit, 8 kHz) an D0–D3 hören auf Steuerwerte vom Signal K Server und geben diese als PWM-Signal aus, um die Helligkeit der Navigationsleuchten zu regeln.
 
 ## Signal K Datenpfade
 
@@ -31,7 +31,7 @@ Vier PWM-Kanäle (8-Bit, 8 kHz) empfangen Steuerwerte vom Signal K Server und st
 | `electrical.batteries.99.capacity.stateOfCharge` | ratio (0–1) | Calypso |
 | `environment.outside.temperature` | K | SHT85 |
 | `environment.outside.humidity` | ratio (0–1) | SHT85 |
-| `electrical.outside.mast.channel.1–4.value` | 0–255 | PWM Eingang |
+| `electrical.outside.mast.channel.1–4.value` | 0–255 | SK → PWM Ausgang |
 
 ## Aufbauen & Flashen
 
