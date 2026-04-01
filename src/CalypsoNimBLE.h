@@ -31,7 +31,6 @@
 * 
 */
 #pragma once
-#include "CalypsoNimBLE.h"
 #include <memory>
 #include "sensesp/sensors/sensor.h"
 #include "sensesp/system/startable.h"
@@ -52,9 +51,7 @@ class CalypsoBLE {
  public:
   CalypsoBLE() ;
   void begin();
-  void on_data_notify(NimBLERemoteCharacteristic* pChr, uint8_t* pData, size_t len, bool isNotify);
   bool set_data_rate(uint8_t rate);
-  DeviceInfo getDeviceInfo();
   static bool doConnect;
   static uint32_t scanTimeMs;
   bool connectToCalypso();
@@ -66,7 +63,7 @@ class CalypsoBLE {
   float wind_speed() const { return wind_speed_; }      // m/s
   float wind_dir_deg() const { return wind_dir_; }      // 0..359
   float battery() const { return battery_; }            // 0..100 %
-  float temperature() const { return temp_; }           // °K
+  float temperature() const { return temp_; }            // °C
 
  protected:
   std::string device_name_;

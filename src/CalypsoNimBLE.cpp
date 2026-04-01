@@ -57,21 +57,29 @@ void ScanCallbacks::onScanEnd(const NimBLEScanResults& scanResults, int reason) 
 }
 
 void CalypsoBLE::notifyCallback(NimBLERemoteCharacteristic* pChr, uint8_t* pData, size_t length, bool isNotify) {
-  // Erwartetes Format laut PDF: [WindSpeed_L, WindSpeed_H, WindDir, Battery, Temp, Roll, Pitch, Compass_H, Compass_L]
-  if (length < 9) return;
-  uint16_t ws_raw = pData[0] + (pData[1] << 8); // Hex/100 → m/s
+  // Format laut Developer Manual 1.8:
+  // Byte 0-1: Wind Speed (uint16 LE, /100 → m/s)
+  // Byte 2-3: Wind Direction (uint16 LE, 1° steps, 0–360°)
+  // Byte 4:   Battery Level (×10 → %)
+  // Byte 5:   Temperature (–100 → °C)
+  // Byte 6:   Roll (–90 → °)
+  // Byte 7:   Pitch (–90 → °)
+  // Byte 8-9: eCompass (uint16 LE, 360 – value → °)
+  if (length < 10) return;
+  uint16_t ws_raw = pData[0] + (pData[1] << 8);
   wind_speed_ = ws_raw / 100.0f;
-  wind_dir_ = pData[2]; // 1° steps
-  battery_ = (pData[3] / 10.0f); // 10% steps (Byte 0-10)
-  temp_ = (int8_t)pData[4]; // Byte als signed int
-  debugV("NotifyCallback recieved: ws_raw = %f, wind_speed = %f, wind_dir = %f, battery = %f, temp = %f", ws_raw, wind_speed_, wind_dir_, battery_);
+  uint16_t dir_raw = pData[2] + (pData[3] << 8);
+  wind_dir_ = (float)dir_raw;                   // 1° steps, 0–360°
+  battery_ = pData[4] * 10.0f;                  // ×10 → %
+  temp_ = (float)pData[5] - 100.0f;             // –100 → °C
+  debugV("NotifyCallback: speed=%.2f m/s, dir=%.0f°, bat=%.0f%%, temp=%.1f°C", wind_speed_, wind_dir_, battery_, temp_);
 }
 
 bool CalypsoBLE::connectToCalypso() {
    debugI("Connecting...");
    ConnectionStatus = 2;
    pClient_ = nullptr;
-   DeviceInfo* di = new DeviceInfo();
+   DeviceInfo di;
    debugI("ServiceUUID: %s", CalypsoBLE::advDevice->getServiceUUID().toString());
 
    if (NimBLEDevice::getCreatedClientCount()) {
@@ -131,14 +139,13 @@ bool CalypsoBLE::connectToCalypso() {
 
    pSvc_ = pClient_->getService("180D"); // Data Service UUID
    if (pSvc_) {
-    pChr_ = pSvc_->getCharacteristic("180D");
+    pChr_ = pSvc_->getCharacteristic("2A39"); // Principal Notify Characteristic
    }
    if (pChr_) {
     if (pChr_->canNotify()) {
-      if (pChr_->subscribe(true, [this](NimBLERemoteCharacteristic* pChr, uint8_t* pData, size_t length, bool isNotify) {
-  this->notifyCallback(pChr, pData, length, isNotify);
-})
-) {
+      if (!pChr_->subscribe(true, [this](NimBLERemoteCharacteristic* pChr, uint8_t* pData, size_t length, bool isNotify) {
+      this->notifyCallback(pChr, pData, length, isNotify);
+    })) {
         debugE("Failed to subscribe to notifications");
         pClient_->disconnect();
         ConnectionStatus = 0;
@@ -154,8 +161,8 @@ bool CalypsoBLE::connectToCalypso() {
     pChr_ = pSvc_->getCharacteristic("2A29"); // Manufacturer Name String");
     if (pChr_) {
       if (pChr_->canRead()) {
-        di->manufacturer = pChr_->readValue();
-        debugI("Manufacturer: %s", di->manufacturer.c_str());
+        di.manufacturer = pChr_->readValue();
+        debugI("Manufacturer: %s", di.manufacturer.c_str());
       } else {
         debugE("2A29 Characteristic not readable.");
         ConnectionStatus = 0;
@@ -163,8 +170,8 @@ bool CalypsoBLE::connectToCalypso() {
       pChr_ = pSvc_->getCharacteristic("2A24"); // Model Number String
       if (pChr_) {
         if (pChr_->canRead()) {
-          di->model = pChr_->readValue();
-          debugI("Model: %s", di->model.c_str());
+          di.model = pChr_->readValue();
+          debugI("Model: %s", di.model.c_str());
         } else {
           debugE("2A24 Characteristic not readable.");
           ConnectionStatus = 0;
@@ -172,8 +179,8 @@ bool CalypsoBLE::connectToCalypso() {
         pChr_ = pSvc_->getCharacteristic("2A26"); // Firmware Revision String
         if (pChr_) {
           if (pChr_->canRead()) {
-            di->firmware = pChr_->readValue();
-            debugI("Firmware: %s", di->firmware.c_str());
+            di.firmware = pChr_->readValue();
+            debugI("Firmware: %s", di.firmware.c_str());
           } else {
             debugE("2A26 Characteristic not readable.");
             ConnectionStatus = 0;
@@ -191,7 +198,7 @@ bool CalypsoBLE::connectToCalypso() {
 }
 
 void CalypsoBLE::begin() {
-  NimBLEDevice::init("hier sollte der Sensesp Name stehen");
+  NimBLEDevice::init("sensesp-mast1");
   NimBLEDevice::setPower(3);
   NimBLEScan* pScan = NimBLEDevice::getScan();
   pScan->setScanCallbacks(&scanCallbacks, false);

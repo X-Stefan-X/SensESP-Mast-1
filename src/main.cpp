@@ -109,17 +109,14 @@ void setup() {
   auto* calypso_sensor = new CalypsoWindSensor(500);
   calypso_sensor->start(); 
 
-  calypso_sensor->speed_ms.connect_to(new SKOutputFloat("environment.wind.speedApparent", "/Calypso/AWS")); 
+  calypso_sensor->speed_ms.connect_to(new SKOutputFloat("environment.wind.speedApparent", "/Calypso/AWS"));
   calypso_sensor->angle_rad.connect_to(new SKOutputFloat("environment.wind.angleApparent", "/Calypso Wind/angle"));
-  calypso_sensor->temp_C.connect_to(new SKOutputFloat("environment.outside.temperature", "/Calypso Wind/temperature"));
   calypso_sensor->soc.connect_to(new Linear(0.01, 0.0))->connect_to(new SKOutputFloat("electrical.batteries.99.capacity.stateOfCharge", "/Calypso Wind/battery SOC"));
 
 
   //SHT85
 
   sht.begin();
-  sht.setTemperatureOffset((random(100) - 50) * 0.01);
-  sht.setHumidityOffset((random(100) - 50) * 0.01);
 
   sk_temp = new SKOutput<float>(
       "environment.outside.temperature",
@@ -132,6 +129,8 @@ void setup() {
       "/sensors/sht85/humidity",
       new SKMetadata("ratio", "Inside relative humidity")
   );
+
+  event_loop()->onRepeat(30000, []() { read_sht85(); });
 
 
   // To avoid garbage collecting all shared pointers created in setup(),
