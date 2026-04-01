@@ -33,20 +33,8 @@ Vier PWM-Ausgänge (8-Bit, 8 kHz) an D0–D3 hören auf Steuerwerte vom Signal K
 | `environment.outside.humidity` | ratio (0–1) | SHT85 |
 | `electrical.outside.mast.channel.1–4.value` | 0–255 | SK → PWM Ausgang |
 
-## Aufbauen & Flashen
 
-Das Projekt verwendet [PlatformIO](https://platformio.org/).
-
-```bash
-# Abhängigkeiten installieren und bauen
-pio run
-
-# Auf das Board flashen (USB)
-pio run --target upload
-
-# Seriellen Monitor öffnen
-pio device monitor
-```
+## Info
 
 Das Standard-Board ist `xiao_esp32c3`. Weitere unterstützte Boards sind in der `platformio.ini` konfiguriert (u.a. HALMET, HALSER, SHEsp32).
 
