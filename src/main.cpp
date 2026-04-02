@@ -112,6 +112,47 @@ void setup() {
   calypso_sensor->speed_ms.connect_to(new SKOutputFloat("environment.wind.speedApparent", "/Calypso/AWS"));
   calypso_sensor->angle_rad.connect_to(new SKOutputFloat("environment.wind.angleApparent", "/Calypso Wind/angle"));
   calypso_sensor->soc.connect_to(new Linear(0.01, 0.0))->connect_to(new SKOutputFloat("electrical.batteries.99.capacity.stateOfCharge", "/Calypso Wind/battery SOC"));
+  // Roll, Pitch und Kompass sind nur verfügbar wenn Sensoren aktiviert wurden (calypso->activate_sensors(true))
+  //calypso_sensor->roll_deg.connect_to(new SKOutputFloat("environment.outside.mast.roll", "/Calypso/roll"));
+  //calypso_sensor->pitch_deg.connect_to(new SKOutputFloat("environment.outside.mast.pitch", "/Calypso/pitch"));
+  //calypso_sensor->compass_deg.connect_to(new SKOutputFloat("environment.outside.mast.compass", "/Calypso/compass"));
+
+  // Calypso Gerätestatus → Signal K (0=sleep, 1=low power, 2=normal)
+  auto* sk_calypso_status = new SKOutput<float>(
+      "electrical.outside.mast.calypso.status",
+      "/Calypso/status",
+      new SKMetadata("", "Calypso Gerätestatus (0=sleep, 1=low power, 2=normal)")
+  );
+
+  // Calypso Datenrate → Signal K (aktuell gelesener Wert in Hz)
+  auto* sk_calypso_datarate = new SKOutput<float>(
+      "electrical.outside.mast.calypso.dataRate",
+      "/Calypso/dataRate",
+      new SKMetadata("Hz", "Calypso Datenrate (1, 4 oder 8 Hz)")
+  );
+
+  // Status und Datenrate alle 30s vom Gerät lesen und publizieren (nur wenn verbunden)
+  auto* calypso_ble = CalypsoBLE::getInstance();
+  event_loop()->onRepeat(30000, [calypso_ble, sk_calypso_status, sk_calypso_datarate]() {
+    if (calypso_ble->ConnectionStatus == 1) {
+      uint8_t status = calypso_ble->read_status();
+      if (status != 0xFF) sk_calypso_status->set_input((float)status);
+      uint8_t rate = calypso_ble->read_data_rate();
+      if (rate != 0xFF) sk_calypso_datarate->set_input((float)rate);
+    }
+  });
+
+  // Datenrate von Signal K aus setzen (erlaubte Werte: 1, 4, 8)
+  auto* Lrate = new SKValueListener<float>("electrical.outside.mast.calypso.setDataRate", CHANGE, "Calypso setDataRate");
+  auto* Lrate_Consumer = new LambdaConsumer<float>([calypso_ble](float value) {
+    uint8_t rate = (uint8_t)value;
+    if (rate == 1 || rate == 4 || rate == 8) {
+      calypso_ble->set_data_rate(rate);
+    } else {
+      debugW("Ungültige Datenrate: %.0f – erlaubt sind 1, 4 oder 8 Hz", value);
+    }
+  });
+  Lrate->connect_to(Lrate_Consumer);
 
 
   //SHT85
